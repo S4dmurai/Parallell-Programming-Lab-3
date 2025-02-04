@@ -5,7 +5,6 @@
 #include <cstdint>
 #include <string>
 #include <vector>
-#include <stdlib.h>
 
 
 TEST_F(LabTest, testAuthors) {

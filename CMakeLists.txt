@@ -4,8 +4,11 @@ project(pp-lab)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CUDA_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
+enable_language(CUDA)
 find_package(OpenMP REQUIRED)
 
 include(cmake/StandardProjectSettings.cmake)
@@ -37,10 +40,8 @@ include(cmake/Utils.cmake)
 add_subdirectory(source)
 
 add_subdirectory(benchmark_lab1)
+add_subdirectory(benchmark_lab2)
 
-add_subdirectory(test_lab1)
+add_subdirectory(test_lab3)
 
 add_subdirectory(test_input)
-
-# create simulation_results directory
-file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/simulation_results)

@@ -2,11 +2,11 @@
 #include "structures/bounding_box.h"
 #include "image/bitmap_image.h"
 #include "image/pixel.h"
+#include "quadtree/quadtreeNode.h"
+#include "quadtree/quadtree.h"
 #include "structures/universe.h"
 #include <cstdint>
 #include <set>
-#include <filesystem>
-#include "structures/vector2d.h"
 
 class Plotter{
 public:
@@ -16,6 +16,9 @@ public:
     }
 
     void add_bodies_to_image(Universe& universe);
+    void add_active_pixels_to_image(std::vector<std::uint8_t>& pixels);
+    void add_compressed_pixels_to_image(std::vector<std::uint8_t>& compressed_pixels);
+
     void highlight_position(Vector2d<double> position, std::uint8_t red, std::uint8_t green, std::uint8_t blue);
     
     void set_plot_bounding_box(BoundingBox bb){
@@ -32,13 +35,32 @@ public:
         filename_prefix = prefix;
     }
 
+    void add_quadtree_to_bitmap(Quadtree& quadtree);
+    void add_quadtreenode_to_bitmap(QuadtreeNode* qtn, std::uint8_t red, std::uint8_t green, std::uint8_t blue);
+
+    std::set<std::tuple<std::uint32_t, std::uint32_t>> get_bounding_box_pixels(std::vector<BoundingBox>& bounding_boxes);
+
+    BoundingBox get_plot_bounding_box(){
+        return plot_bounding_box;
+    }
+
     void mark_position(Vector2d<double> position, std::uint8_t red, std::uint8_t green, std::uint8_t blue);
     void mark_pixel(std::uint32_t x, std::uint32_t y, std::uint8_t red, std::uint8_t green, std::uint8_t blue);
+
+    Vector2d<std::uint32_t> get_pixel_coordinates(Vector2d<double> position);
 
     BitmapImage::BitmapPixel get_pixel(std::uint32_t x, std::uint32_t y);
 
     std::uint32_t get_next_image_serial_number(){
         return image_serial_number;
+    }
+
+    std::uint32_t get_plot_height(){
+        return plot_height;
+    }
+
+    std::uint32_t get_plot_width(){
+        return plot_width;
     }
 
 private:

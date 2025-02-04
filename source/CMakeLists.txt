@@ -11,11 +11,21 @@ target_sources(
       input_generator/random_universe.cpp
       input_generator/earth_orbit.cpp
       input_generator/random_universe_with_supermassive_blackhole.cpp
+      input_generator/two_body_collision.cpp
 
       simulation/naive_sequential_simulation.cpp
+      simulation/naive_parallel_simulation.cpp
+      simulation/barnes_hut_simulation.cpp
+      simulation/barnes_hut_simulation_with_collisions.cpp
+      simulation/naive_cuda_simulation.cu
 
       plotting/plotter.cpp
       plotting/universe.cpp
+      plotting/quadtree.cpp
+      plotting/bounding_box.cpp
+
+      quadtree/quadtree.cpp
+      quadtree/quadtreeNode.cpp
 	
 		  # for visual studio
 		  ${lab_lib_additional_files})

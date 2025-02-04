@@ -38,13 +38,13 @@ TEST_F(SimulationTest, test_five_a){
     ASSERT_EQ(uni.positions.size(), reference_uni.positions.size());
 
     for(int i = 0; i < uni.num_bodies; i++){
-        ASSERT_EQ(round_to(uni.weights[i], 0.000001), round_to(reference_uni.weights[i], 0.000001));
-        ASSERT_EQ(round_to(uni.forces[i][0], 0.000001), round_to(reference_uni.forces[i][0], 0.000001));
-        ASSERT_EQ(round_to(uni.forces[i][1], 0.000001), round_to(reference_uni.forces[i][1], 0.000001));
-        ASSERT_EQ(round_to(uni.velocities[i][0], 0.000001), round_to(reference_uni.velocities[i][0], 0.000001));
-        ASSERT_EQ(round_to(uni.velocities[i][1], 0.000001), round_to(reference_uni.velocities[i][1], 0.000001));
-        ASSERT_EQ(round_to(uni.positions[i][0], 0.000001), round_to(reference_uni.positions[i][0], 0.000001));
-        ASSERT_EQ(round_to(uni.positions[i][1], 0.000001), round_to(reference_uni.positions[i][1], 0.000001));
+        ASSERT_FLOAT_EQ(round_to(uni.weights[i], 0.000001), round_to(reference_uni.weights[i], 0.000001));
+        ASSERT_FLOAT_EQ(round_to(uni.forces[i][0], 0.000001), round_to(reference_uni.forces[i][0], 0.000001));
+        ASSERT_FLOAT_EQ(round_to(uni.forces[i][1], 0.000001), round_to(reference_uni.forces[i][1], 0.000001));
+        ASSERT_FLOAT_EQ(round_to(uni.velocities[i][0], 0.000001), round_to(reference_uni.velocities[i][0], 0.000001));
+        ASSERT_FLOAT_EQ(round_to(uni.velocities[i][1], 0.000001), round_to(reference_uni.velocities[i][1], 0.000001));
+        ASSERT_FLOAT_EQ(round_to(uni.positions[i][0], 0.000001), round_to(reference_uni.positions[i][0], 0.000001));
+        ASSERT_FLOAT_EQ(round_to(uni.positions[i][1], 0.000001), round_to(reference_uni.positions[i][1], 0.000001));
     }
 }
 
@@ -83,13 +83,13 @@ TEST_F(SimulationTest, test_four_d){
 
     ASSERT_EQ(uni.num_bodies, reference_uni.num_bodies);
     for(int i = 0; i < uni.num_bodies; i++){
-        ASSERT_EQ(round_to(uni.weights[i], 0.000001), round_to(reference_uni.weights[i], 0.000001));
-        ASSERT_EQ(round_to(uni.forces[i][0], 0.000001), round_to(reference_uni.forces[i][0], 0.000001));
-        ASSERT_EQ(round_to(uni.forces[i][1], 0.000001), round_to(reference_uni.forces[i][1], 0.000001));
-        ASSERT_EQ(round_to(uni.velocities[i][0], 0.000001), round_to(reference_uni.velocities[i][0], 0.000001));
-        ASSERT_EQ(round_to(uni.velocities[i][1], 0.000001), round_to(reference_uni.velocities[i][1], 0.000001));
-        ASSERT_EQ(round_to(uni.positions[i][0], 0.000001), round_to(reference_uni.positions[i][0], 0.000001));
-        ASSERT_EQ(round_to(uni.positions[i][1], 0.000001), round_to(reference_uni.positions[i][1], 0.000001));
+        ASSERT_FLOAT_EQ(round_to(uni.weights[i], 0.000001), round_to(reference_uni.weights[i], 0.000001));
+        ASSERT_FLOAT_EQ(round_to(uni.forces[i][0], 0.000001), round_to(reference_uni.forces[i][0], 0.000001));
+        ASSERT_FLOAT_EQ(round_to(uni.forces[i][1], 0.000001), round_to(reference_uni.forces[i][1], 0.000001));
+        ASSERT_FLOAT_EQ(round_to(uni.velocities[i][0], 0.000001), round_to(reference_uni.velocities[i][0], 0.000001));
+        ASSERT_FLOAT_EQ(round_to(uni.velocities[i][1], 0.000001), round_to(reference_uni.velocities[i][1], 0.000001));
+        ASSERT_FLOAT_EQ(round_to(uni.positions[i][0], 0.000001), round_to(reference_uni.positions[i][0], 0.000001));
+        ASSERT_FLOAT_EQ(round_to(uni.positions[i][1], 0.000001), round_to(reference_uni.positions[i][1], 0.000001));
     }
     // One plot should have been created
     ASSERT_EQ(count_files_in_directory(tmp_path), 1);

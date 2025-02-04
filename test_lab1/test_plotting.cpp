@@ -22,8 +22,8 @@ TEST_F(PlottingTest, test_three_b){
     plotter.mark_position(Vector2d<double>(10, -10), 255, 255, 255);
     plotter.mark_position(Vector2d<double>(0, 0), 255, 255, 255);
 
-    for(int x = 0; x < 799; x++){
-        for(int y = 0; y < 799; y++){
+    for(int x = 0; x < 800; x++){
+        for(int y = 0; y < 800; y++){
             auto px = plotter.get_pixel(x, y);
             if((x == 0 && y == 0) || (x == 0 && y == 799) || (x == 799 && y == 0) || (x == 399 && y == 399) ){
                 ASSERT_EQ(px.get_blue_channel(), 255);
