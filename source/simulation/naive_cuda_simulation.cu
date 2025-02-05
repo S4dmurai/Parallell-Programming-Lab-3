@@ -13,6 +13,16 @@ void NaiveCudaSimulation::allocate_device_memory(Universe& universe, void** d_we
 }
 
 void NaiveCudaSimulation::free_device_memory(void** d_weights, void** d_forces, void** d_velocities, void** d_positions){
+    parprog_cudaFree(d_weights);
+    d_weights = nullptr;
+    parprog_cudaFree(d_forces);
+    d_forces = nullptr;
+    parprog_cudaFree(d_velocities);
+    d_velocities = nullptr;
+    parprog_cudaFree(d_positions);
+    d_positions = nullptr;
+
+
 
 }
 
