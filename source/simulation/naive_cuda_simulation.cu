@@ -27,7 +27,34 @@ void NaiveCudaSimulation::free_device_memory(void** d_weights, void** d_forces, 
 }
 
 void NaiveCudaSimulation::copy_data_to_device(Universe& universe, void* d_weights, void* d_forces, void* d_velocities, void* d_positions){
-
+    parprog_cudaMemcpy(d_weights, &universe.weights, universe.num_bodies * sizeof(double), cudaMemcpyHostToDevice);
+    std::vector<double2> converted_forces;
+    //Converting vec2d to double2
+    for (int i = 0; i < universe.num_bodies; i++) {
+        double2 conv;
+        conv.x = universe.forces[i][0];
+        conv.y = universe.forces[i][1];
+        converted_forces.push_back(conv);
+    }
+    parprog_cudaMemcpy(d_weights, &converted_forces, universe.num_bodies * sizeof(double2), cudaMemcpyHostToDevice);
+    std::vector<double2> converted_velocities;
+    //Converting vec2d to double2
+    for (int i = 0; i < universe.num_bodies; i++) {
+        double conv;
+        conv.x = universe.velocities[i][0];
+        conv.y = universe.velocities[i][1];
+        converted_velocities.push_back(conv);
+    }
+    parprog_cudaMemcpy(d_weights, &converted_velocities, universe.num_bodies * sizeof(double2), cudaMemcpyHostToDevice);
+    std::vector<double2> converted_positions;
+    //Converting vec2d to double2
+    for (int i = 0; i < universe.num_bodies; i++) {
+        double2 conv;
+        conv.x = universe.positions[i][0];
+        conv.y = universe.positions[i][1];
+        converted_positions.push_back(conv);
+    }
+    parprog_cudaMemcpy(d_weights, &converted_positions, universe.num_bodies * sizeof(double2), cudaMemcpyHostToDevice);
 }
 
 void NaiveCudaSimulation::copy_data_from_device(Universe& universe, void* d_weights, void* d_forces, void* d_velocities, void* d_positions){
