@@ -58,33 +58,33 @@ void NaiveCudaSimulation::copy_data_to_device(Universe& universe, void* d_weight
 }
 
 void NaiveCudaSimulation::copy_data_from_device(Universe& universe, void* d_weights, void* d_forces, void* d_velocities, void* d_positions) {
-    parprog_cudaMemcpy(&universe.weights, d_weights, universe.num_bodies * sizeof(double), cudaMemcpyDeviceToHost);
-    std::vector<double2> received_forces;
-    parprog_cudaMemcpy(&received_forces, d_forces, universe.num_bodies * sizeof(double2), cudaMemcpyDeviceToHost);
+    parprog_cudaMemcpy(universe.weights.data(), d_weights, universe.num_bodies * sizeof(double), cudaMemcpyDeviceToHost);
+    std::vector<double2> received_forces(universe.num_bodies);
+    parprog_cudaMemcpy(received_forces.data(), d_forces, universe.num_bodies * sizeof(double2), cudaMemcpyDeviceToHost);
     //Converting double2 to vec2d
     std::vector<Vector2d<double>> converted_forces;
     for (int i = 0; i < universe.num_bodies; i++) {
-        Vector2d<double> conv = Vector2d<double>(received_forces[i].x, received_forces[i].y);
+        Vector2d<double> conv(received_forces[i].x, received_forces[i].y);
         converted_forces.push_back(conv);
     };
     universe.forces = converted_forces;
 
-    std::vector<double2> received_velocities;
-    parprog_cudaMemcpy(&received_velocities, d_velocities, universe.num_bodies * sizeof(double2), cudaMemcpyDeviceToHost);
+    std::vector<double2> received_velocities(universe.num_bodies);
+    parprog_cudaMemcpy(received_velocities.data(), d_velocities, universe.num_bodies * sizeof(double2), cudaMemcpyDeviceToHost);
     //Converting double2 to vec2d 
     std::vector<Vector2d<double>> converted_velocities; 
     for (int i = 0; i < universe.num_bodies; i++) { 
-        Vector2d<double> conv = Vector2d<double>(received_velocities[i].x, received_velocities[i].y);
+        Vector2d<double> conv(received_velocities[i].x, received_velocities[i].y);
         converted_velocities.push_back(conv); 
     };
     universe.velocities = converted_velocities;
 
-    std::vector<double2> received_positions;
-    parprog_cudaMemcpy(&received_positions, d_positions, universe.num_bodies * sizeof(double2), cudaMemcpyDeviceToHost);
+    std::vector<double2> received_positions(universe.num_bodies);
+    parprog_cudaMemcpy(received_positions.data(), d_positions, universe.num_bodies * sizeof(double2), cudaMemcpyDeviceToHost);
     //Converting double2 to vec2d
     std::vector<Vector2d<double>> converted_positions;
     for (int i = 0; i < universe.num_bodies; i++) {
-        Vector2d<double> conv = Vector2d<double>(received_positions[i].x, received_positions[i].y);
+        Vector2d<double> conv(received_positions[i].x, received_positions[i].y);
         converted_positions.push_back(conv);
     };
     universe.positions = converted_positions;
@@ -92,29 +92,128 @@ void NaiveCudaSimulation::copy_data_from_device(Universe& universe, void* d_weig
 
 __global__
 void calculate_forces_kernel(std::uint32_t num_bodies, double2* d_positions, double* d_weights, double2* d_forces){
+    std::uint32_t i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= num_bodies)
+        return;
+
+    double2 position_i = d_positions[i];
+    double weight_i = d_weights[i];
+
+    double2 force = { 0.0, 0.0 };
+
     
+    for (std::uint32_t j = 0; j < num_bodies; ++j) {
+        if (j == i)
+            continue;  
+
+        double2 position_j = d_positions[j];
+
+        
+        double2 direction;
+        direction.x = position_j.x - position_i.x;
+        direction.y = position_j.y - position_i.y;
+
+        
+        double distance = sqrt(pow(direction.x, 2) + pow(direction.y, 2));
+        
+    	double f = 6.67430e-11 * weight_i * d_weights[j] / (distance * distance);
+            
+    	double force_factor = f / distance;
+    	force.x += direction.x * force_factor;
+    	force.y += direction.y * force_factor;
+    }
+    d_forces[i] = force;
 }
 
 void NaiveCudaSimulation::calculate_forces(Universe& universe, void* d_positions, void* d_weights, void* d_forces){
-    
+    std::uint32_t block_dim = 512;
+    std::uint32_t grid_dim;
+    if (universe.num_bodies % block_dim == 0) {
+        grid_dim = universe.num_bodies / block_dim;
+    }
+    else {
+        grid_dim = (universe.num_bodies - (universe.num_bodies % block_dim) + block_dim) / block_dim;
+    }
+
+    dim3 blockDim(block_dim);
+    dim3 gridDim(grid_dim);
+    calculate_forces_kernel<<<gridDim, blockDim>>>(universe.num_bodies, (double2*) d_positions, (double*) d_weights, (double2*) d_forces);
+
 }
 
 __global__
 void calculate_velocities_kernel(std::uint32_t num_bodies, double2* d_forces, double* d_weights, double2* d_velocities){
+    std::uint32_t i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= num_bodies)
+        return;
 
+    double2 velocity;
+
+    double2 force = d_forces[i];
+    double weight = d_weights[i];
+    double2 base_velocity = d_velocities[i];
+
+    double2 acceleration;
+    acceleration.x = force.x / weight;
+	acceleration.y = force.y / weight;
+
+    velocity.x = base_velocity.x + (acceleration.x * 2.628e+6);
+    velocity.y = base_velocity.y + (acceleration.y * 2.628e+6);
+
+    d_velocities[i] = velocity;
 }
 
 void NaiveCudaSimulation::calculate_velocities(Universe& universe, void* d_forces, void* d_weights, void* d_velocities){
+    std::uint32_t block_dim = 512;
+    std::uint32_t grid_dim;
+    if (universe.num_bodies % block_dim == 0) {
+        grid_dim = universe.num_bodies / block_dim;
+    }
+    else {
+        grid_dim = (universe.num_bodies - (universe.num_bodies % block_dim) + block_dim) / block_dim;
+    }
 
+    dim3 blockDim(block_dim);
+    dim3 gridDim(grid_dim);
+
+	calculate_velocities_kernel << <gridDim, blockDim >> > (universe.num_bodies, (double2*)d_forces, (double*)d_weights, (double2*)d_velocities);
 }
 
 __global__
 void calculate_positions_kernel(std::uint32_t num_bodies, double2* d_velocities, double2* d_positions){
+    std::uint32_t i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= num_bodies)
+        return;
+
+    double2 new_position;
+
+    double2 velocity = d_velocities[i];
+    double2 position = d_positions[i];
+
+    double2 movement;
+    movement.x = velocity.x * 2.628e+6;
+    movement.y = velocity.y * 2.628e+6;
+
+    new_position.x = position.x + movement.x;
+    new_position.y = position.y + movement.y;
+
+    d_positions[i] = new_position;
 
 }
 
 void NaiveCudaSimulation::calculate_positions(Universe& universe, void* d_velocities, void* d_positions){
+    std::uint32_t block_dim = 512;
+    std::uint32_t grid_dim;
+    if (universe.num_bodies % block_dim == 0) {
+        grid_dim = universe.num_bodies / block_dim;
+    }
+    else {
+        grid_dim = (universe.num_bodies - (universe.num_bodies % block_dim) + block_dim) / block_dim;
+    }
 
+	dim3 blockDim(block_dim);
+    dim3 gridDim(grid_dim);
+    calculate_positions_kernel << <gridDim, blockDim >> > (universe.num_bodies, (double2*)d_velocities, (double2*)d_positions);
 }
 
 void NaiveCudaSimulation::simulate_epochs(Plotter& plotter, Universe& universe, std::uint32_t num_epochs, bool create_intermediate_plots, std::uint32_t plot_intermediate_epochs){
