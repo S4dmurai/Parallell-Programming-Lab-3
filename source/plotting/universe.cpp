@@ -20,10 +20,12 @@ void Plotter::add_bodies_to_image(Universe& universe){
 
 void Plotter::add_active_pixels_to_image(std::vector<std::uint8_t>& pixels){
     // merges the passed pixels into the current image
-    #pragma omp parallel for firstprivate(plot_width, plot_height) shared(pixels) collapse(2)
-    for(std::uint32_t i = 0; i < plot_width; i++){
-        for(std::uint32_t j = 0; j < plot_height; j++){
-            if(pixels[i + j*plot_width] != 0){
+    std::uint32_t plot_width2 = plot_width;
+    std::uint32_t plot_height2 = plot_height;
+    #pragma omp parallel for firstprivate(plot_width2, plot_height2) shared(pixels) collapse(2)
+    for(std::uint32_t i = 0; i < plot_width2; i++){
+        for(std::uint32_t j = 0; j < plot_height2; j++){
+            if(pixels[i + j*plot_width2] != 0){
                 #pragma omp critical
                 {
                     mark_pixel(i, j, 255, 255, 255);

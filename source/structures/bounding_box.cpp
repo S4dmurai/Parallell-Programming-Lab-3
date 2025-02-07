@@ -1,5 +1,6 @@
 #include "structures/bounding_box.h"
 #include <cmath>
+#include <string>
 
 std::string BoundingBox::get_string(){
     std::string res = "" + std::to_string(x_min) + " " + std::to_string(x_max) + "  -  " + std::to_string(y_min) + " " + std::to_string(y_max);
