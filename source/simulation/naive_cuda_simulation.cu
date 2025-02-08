@@ -216,17 +216,70 @@ void NaiveCudaSimulation::calculate_positions(Universe& universe, void* d_veloci
     calculate_positions_kernel << <gridDim, blockDim >> > (universe.num_bodies, (double2*)d_velocities, (double2*)d_positions);
 }
 
-void NaiveCudaSimulation::simulate_epochs(Plotter& plotter, Universe& universe, std::uint32_t num_epochs, bool create_intermediate_plots, std::uint32_t plot_intermediate_epochs){
+void NaiveCudaSimulation::simulate_epochs(Plotter& plotter, Universe& universe, std::uint32_t num_epochs, bool create_intermediate_plots, std::uint32_t plot_intermediate_epochs) {
+    //init pointers
+    void* d_weights;
+    void* d_forces;
+    void* d_velocities;
+    void* d_positions;
+    //copy data to device
+    allocate_device_memory(universe, &d_weights, &d_forces, &d_velocities, &d_positions);
+    copy_data_to_device(universe, &d_weights, &d_forces, &d_velocities, &d_positions);
+    for (int i = 0; i < num_epochs; i++) {
+        //Calculations (num_epochs times)
+        calculate_forces(universe, d_positions, d_weights, d_forces);
+        calculate_velocities(universe, d_forces, d_weights, d_velocities);
+        calculate_positions(universe, d_velocities, d_positions);
+        universe.current_simulation_epoch++;
 
-}
+        //plotcheck, copied from naive-sequential
+        if (create_intermediate_plots) {
+            if ((universe.current_simulation_epoch % plot_intermediate_epochs) == 0) {
+                std::vector<std::uint8_t> pixels = get_pixels(plotter.get_plot_width(), plotter.get_plot_height(), plotter.get_plot_bounding_box(), d_positions, universe.num_bodies); 
+                plotter.add_active_pixels_to_image(pixels);
+                plotter.write_and_clear();
+            }
+        }
+    }
+    //Copy results to universe
+    copy_data_from_device(universe, d_weights, d_forces, d_velocities, d_positions); 
+    //free space
+    free_device_memory(&d_weights, &d_forces, &d_velocities, &d_positions);
+}      
 
 __global__
 void get_pixels_kernel(std::uint32_t num_bodies, double2* d_positions, std::uint8_t* d_pixels, std::uint32_t plot_width, std::uint32_t plot_height, double plot_bounding_box_x_min, double plot_bounding_box_x_max, double plot_bounding_box_y_min, double plot_bounding_box_y_max){
+    std::uint32_t i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= num_bodies)
+        return;
+    double2 position = d_positions[i];
+    if (plot_bounding_box_x_min < position.x && position.x < plot_bounding_box_x_max && plot_bounding_box_y_min < position.y && position.y < plot_bounding_box_y_max) {
+        std::uint32_t x = ((position.x - plot_bounding_box_x_min) / (plot_bounding_box_x_max - plot_bounding_box_x_min))*(plot_width-1);
+        std::uint32_t y = ((position.y - plot_bounding_box_y_min) / (plot_bounding_box_y_max - plot_bounding_box_y_min))*(plot_height-1);
+        d_pixels[y * plot_width + x] = 1;
+    }
 
 }
 
 std::vector<std::uint8_t> NaiveCudaSimulation::get_pixels(std::uint32_t plot_width, std::uint32_t plot_height, BoundingBox plot_bounding_box, void* d_positions, std::uint32_t num_bodies){
-    std::vector<std::uint8_t> pixels;
+    std::uint32_t num_of_pixels = plot_height * plot_width;
+    std::vector<std::uint8_t> pixels(num_of_pixels, 0);
+    std::uint8_t* d_pixels;
+    parprog_cudaMalloc(&d_pixels, num_of_pixels * sizeof(std::uint8_t));
+    parprog_cudaMemcpy(d_pixels, &pixels, num_of_pixels * sizeof(std::uint8_t), cudaMemcpyHostToDevice); //Might be unecessary
+    std::uint32_t block_dim = 512;
+    std::uint32_t grid_dim;
+    if (num_bodies % block_dim == 0) {
+        grid_dim = num_bodies / block_dim;
+    }
+    else {
+        grid_dim = (num_bodies - (num_bodies % block_dim) + block_dim) / block_dim;
+    }
+    dim3 blockDim(block_dim);
+    dim3 gridDim(grid_dim);
+    get_pixels_kernel(num_bodies, d_positions, d_pixels, plot_width, plot_height, plot_bounding_box.x_min, plot_bounding_box.x_max, plot_bounding_box.y_min, plot_bounding_box.y_max);
+    parprog_cudaMemcpy(&pixels, d_pixels, num_of_pixels * sizeof(std::uint8_t), cudaMemcpyDeviceToHost);
+    parprog_cudaFree(d_pixels);
     return pixels;
 }
 
