@@ -266,7 +266,7 @@ std::vector<std::uint8_t> NaiveCudaSimulation::get_pixels(std::uint32_t plot_wid
     std::vector<std::uint8_t> pixels(num_of_pixels, 0);
     void* d_pixels;
     parprog_cudaMalloc(&d_pixels, num_of_pixels * sizeof(std::uint8_t));
-    parprog_cudaMemcpy(d_pixels, &pixels, num_of_pixels * sizeof(std::uint8_t), cudaMemcpyHostToDevice); //Might be unecessary
+    parprog_cudaMemcpy(d_pixels, pixels.data(), num_of_pixels * sizeof(std::uint8_t), cudaMemcpyHostToDevice); //Might be unecessary
     std::uint32_t block_dim = 512;
     std::uint32_t grid_dim;
     if (num_bodies % block_dim == 0) {
@@ -277,8 +277,11 @@ std::vector<std::uint8_t> NaiveCudaSimulation::get_pixels(std::uint32_t plot_wid
     }
     dim3 blockDim(block_dim);
     dim3 gridDim(grid_dim);
-    get_pixels_kernel << <gridDim, blockDim >> > (num_bodies, d_positions, d_pixels, plot_width, plot_height, plot_bounding_box.x_min, plot_bounding_box.x_max, plot_bounding_box.y_min, plot_bounding_box.y_max);
-    parprog_cudaMemcpy(&pixels, d_pixels, num_of_pixels * sizeof(std::uint8_t), cudaMemcpyDeviceToHost);
+    std::uint8_t* d_pixelss = static_cast<std::uint8_t*>(d_pixels);
+    double2* d_positionss = static_cast<double2*>(d_positions);
+
+    get_pixels_kernel << <gridDim, blockDim >> > (num_bodies, d_positionss, d_pixelss, plot_width, plot_height, plot_bounding_box.x_min, plot_bounding_box.x_max, plot_bounding_box.y_min, plot_bounding_box.y_max);
+    parprog_cudaMemcpy(pixels.data(), d_pixels, num_of_pixels * sizeof(std::uint8_t), cudaMemcpyDeviceToHost);
     parprog_cudaFree(d_pixels);
     return pixels;
 }
@@ -312,11 +315,15 @@ void NaiveCudaSimulation::compress_pixels(std::vector<std::uint8_t>& raw_pixels,
 
     void* d_raw_pixels;
     void* d_compressed_pixels;
+
+    
     parprog_cudaMalloc(&d_raw_pixels, num_raw_pixels * sizeof(uint8_t));
     parprog_cudaMalloc(&d_compressed_pixels, (num_raw_pixels/8) * sizeof(uint8_t));
-    parprog_cudaMemcpy(d_raw_pixels, &raw_pixels, num_raw_pixels * sizeof(std::uint8_t), cudaMemcpyHostToDevice);
-    compress_pixels_kernel << <gridDim, blockDim >> > (num_raw_pixels, d_raw_pixels, d_compressed_pixels);
-    parprog_cudaMemcpy(&compressed_pixels, d_compressed_pixels, (num_raw_pixels/8) * sizeof(std::uint8_t), cudaMemcpyDeviceToHost);
+    parprog_cudaMemcpy(d_raw_pixels, raw_pixels.data(), num_raw_pixels * sizeof(std::uint8_t), cudaMemcpyHostToDevice);
+    std::uint8_t* d_raw_pixelss = static_cast<std::uint8_t*>(d_raw_pixels);
+    std::uint8_t* d_compressed_pixelss = static_cast<std::uint8_t*>(d_compressed_pixels);
+    compress_pixels_kernel << <gridDim, blockDim >> > (num_raw_pixels, d_raw_pixelss, d_compressed_pixelss);
+    parprog_cudaMemcpy(compressed_pixels.data(), d_compressed_pixels, (num_raw_pixels/8) * sizeof(std::uint8_t), cudaMemcpyDeviceToHost);
     parprog_cudaFree(d_compressed_pixels);
     parprog_cudaFree(d_raw_pixels);
 
