@@ -13,4 +13,4 @@
 #define AUTHORS_K "Paul Klein"
 #define AUTHORS_L "Paul Klein"
 #define AUTHORS_M "Paul Klein"
-#define AUTHORS_N ""
+#define AUTHORS_N "Sam Diehl"
